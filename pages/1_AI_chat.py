@@ -1,5 +1,9 @@
 import streamlit as st
 
+import sys
+import os
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 #st.title("AI Chat")
 
 #st.write("Welcome to the AI Chat page")
