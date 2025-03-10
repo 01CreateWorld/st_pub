@@ -1,6 +1,9 @@
 import streamlit as st
-from ..utils.user_utils import UserManager
-from ..utils.auth_utils import AuthManager
+import sys
+import os
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from utils.user_utils import UserManager
+from utils.auth_utils import AuthManager
 import re
 from pathlib import Path
 from datetime import datetime
