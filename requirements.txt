@@ -1,4 +1,4 @@
 cozepy
 bcrypt
-utils
 extra_streamlit_components
+utils
