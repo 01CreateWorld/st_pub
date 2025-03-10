@@ -1,0 +1,10 @@
+{
+  "First": {
+    "user_id": "92434d9a-a61d-47d4-9bb4-5f44d946db26",
+    "password": "$2b$12$VEzGiiBbLmuCxBZDOk4RU.99BHzduJAbhZWGubPLfpDhGnO.gVhpq",
+    "email": "139@139.com",
+    "gender": "男",
+    "avatar_path": "data/avatars/default.png",
+    "created_at": "2025-03-08 11:55:24"
+  }
+}

@@ -1,0 +1,11 @@
+[theme]
+# 主色调：温暖的粉紫色，给人温馨感但不过于幼稚
+primaryColor = "#9C6ADE"  # 温和的紫色，象征成长和智慧
+
+# 背景色：柔和的浅色背景，易于阅读
+backgroundColor = "#FFF8F9"  # 非常浅的粉色背景，温暖而不刺眼
+secondaryBackgroundColor = "#F3E8FF"  # 浅紫色次要背景，增加层次感
+
+# 文本颜色：深色文本确保可读性
+textColor = "#4A4A4A"  # 深灰色文本，比纯黑色更柔和
+font = "sans serif"  # 现代无衬线字体，清晰易读 
