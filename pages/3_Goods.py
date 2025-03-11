@@ -1,7 +1,7 @@
 import streamlit as st
 
 st.set_page_config(
-    page_title="文创商店，建设中...",
+    page_title="文创商店，建设中....",
     page_icon="💎",
     layout="wide"
 )
