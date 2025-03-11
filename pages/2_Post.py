@@ -2,6 +2,7 @@ import streamlit as st
 import os
 import datetime
 import uuid
+import time
 
 # 设置页面配置
 st.set_page_config(
@@ -79,6 +80,22 @@ st.markdown("""
         border-radius: 10px;
         margin: 1rem 0;
     }
+    .reply-button {
+        background-color: #F3E8FF;
+        color: #9C6ADE;
+        border: none;
+        padding: 5px 15px;
+        border-radius: 15px;
+        font-size: 0.9em;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        cursor: pointer;
+        margin-top: 10px;
+        transition: all 0.3s ease;
+    }
+    .reply-button:hover {
+        background-color: #9C6ADE;
+        color: white;
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -153,13 +170,13 @@ if os.path.exists("posts"):
                 # 解析帖子内容
                 lines = content.split("\n")
                 author = lines[0].replace("作者: ", "")
-                time = lines[1].replace("时间: ", "")
+                post_time = lines[1].replace("时间: ", "")
                 post_content = "\n".join(lines[3:])
                 
                 posts.append({
                     "id": post_id,
                     "author": author,
-                    "time": time,
+                    "time": post_time,
                     "content": post_content
                 })
             except Exception as e:
@@ -176,4 +193,95 @@ else:
         with st.expander(f"✨ {post['author']} · {post['time']}", expanded=True):
             # 使用自定义样式显示帖子内容，保持换行格式
             st.markdown(f'<div class="post-content">{post["content"]}</div>', unsafe_allow_html=True)
+            
+            # 初始化回复状态
+            reply_state_key = f"show_reply_{post['id']}"
+            if reply_state_key not in st.session_state:
+                st.session_state[reply_state_key] = False
+            
+            # 读取回复数据
+            replies_dir = os.path.join("posts", post["id"], "replies")
+            if not os.path.exists(replies_dir):
+                os.makedirs(replies_dir)
+            
+            # 读取回复
+            replies = []
+            for reply_file in sorted(os.listdir(replies_dir)):
+                if reply_file.endswith('.txt'):
+                    with open(os.path.join(replies_dir, reply_file), 'r', encoding='utf-8') as f:
+                        reply_content = f.read()
+                        reply_lines = reply_content.split('\n')
+                        reply_author = reply_lines[0].replace("作者: ", "")
+                        reply_time = reply_lines[1].replace("时间: ", "")
+                        reply_text = '\n'.join(reply_lines[3:])
+                        replies.append({
+                            'author': reply_author,
+                            'time': reply_time,
+                            'content': reply_text
+                        })
+            
+            # 按时间倒序排列回复
+            replies.sort(key=lambda x: x['time'], reverse=True)
+            
+            # 1. 回复输入框容器 - 包含回复数量、按钮和表单
+            reply_input_container = st.container()
+            with reply_input_container:
+                # 显示回复数量和回复按钮
+                col1, col2 = st.columns([6, 1])
+                with col1:
+                    if replies:
+                        st.markdown(f'<div style="font-size: 1rem; color: #666; margin-bottom: 10px;">💬 {len(replies)}条回复</div>', unsafe_allow_html=True)
+                    else:
+                        st.markdown('<div style="font-size: 1rem; color: #666; margin-bottom: 10px;">💬 暂无回复</div>', unsafe_allow_html=True)
+                
+                # 只有登录用户才显示回复按钮
+                if 'username' in st.session_state:
+                    with col2:
+                        if st.button("💬 回复", key=f"reply_btn_{post['id']}", type="secondary", use_container_width=True):
+                            st.session_state[reply_state_key] = True
+                            st.rerun()
+                
+                # 显示回复表单
+                if 'username' in st.session_state and st.session_state[reply_state_key]:
+                    with st.form(key=f"reply_form_{post['id']}"):
+                        reply_content = st.text_area("写下你的回复", key=f"reply_input_{post['id']}", height=100)
+                        col1, col2 = st.columns([1, 6])
+                        submit_reply = col1.form_submit_button("发送")
+                        cancel_reply = col2.form_submit_button("取消")
+                        
+                        if submit_reply and reply_content:
+                            # 生成回复文件名（使用时间戳确保唯一性）
+                            reply_filename = f"{int(time.time())}.txt"
+                            reply_path = os.path.join(replies_dir, reply_filename)
+                            
+                            # 保存回复内容
+                            current_time = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                            with open(reply_path, "w", encoding="utf-8") as f:
+                                f.write(f"作者: {st.session_state.username}\n")
+                                f.write(f"时间: {current_time}\n")
+                                f.write(f"内容:\n{reply_content}")
+                            
+                            st.session_state[reply_state_key] = False
+                            st.success("回复成功！")
+                            st.rerun()
+                        
+                        if cancel_reply:
+                            st.session_state[reply_state_key] = False
+                            st.rerun()
+            
+            # 2. 回复列表容器
+            reply_list_container = st.container()
+            with reply_list_container:
+                # 显示已有的回复
+                for reply in replies:
+                    st.markdown(f"""
+                    <div style="margin-left: 20px; margin-bottom: 10px;">
+                        <div style="font-size: 0.9em; color: #666;">
+                            {reply['author']} · {reply['time']}
+                        </div>
+                        <div style="background-color: #F0F0F0; padding: 10px; border-radius: 5px; margin-top: 5px;">
+                            {reply['content']}
+                        </div>
+                    </div>
+                    """, unsafe_allow_html=True)
             # 这里可以添加查看图片的功能 
