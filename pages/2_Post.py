@@ -230,14 +230,28 @@ else:
                 col1, col2 = st.columns([6, 1])
                 with col1:
                     if replies:
-                        st.markdown(f'<div style="font-size: 1rem; color: #666; margin-bottom: 10px;">💬 {len(replies)}条回复</div>', unsafe_allow_html=True)
+                        st.markdown(f'<div style="font-size: 0.9rem; color: #666; margin-bottom: 10px;">💬 {len(replies)}条回复</div>', unsafe_allow_html=True)
                     else:
-                        st.markdown('<div style="font-size: 1rem; color: #666; margin-bottom: 10px;">💬 暂无回复</div>', unsafe_allow_html=True)
+                        st.markdown('<div style="font-size: 0.9rem; color: #666; margin-bottom: 10px;">💬 暂无回复</div>', unsafe_allow_html=True)
                 
                 # 只有登录用户才显示回复按钮
                 if 'username' in st.session_state:
                     with col2:
-                        if st.button("💬 回复", key=f"reply_btn_{post['id']}", type="secondary", use_container_width=True):
+                        st.markdown("""
+                        <style>
+                        div[data-testid="stButton"] > button {
+                            white-space: nowrap;
+                            padding: 0.25rem 0.5rem;
+                            font-size: 0.85rem;
+                            min-width: auto;
+                            height: auto;
+                            display: inline-flex;
+                            align-items: center;
+                            justify-content: center;
+                        }
+                        </style>
+                        """, unsafe_allow_html=True)
+                        if st.button("回复", key=f"reply_btn_{post['id']}", type="secondary", use_container_width=True):
                             st.session_state[reply_state_key] = True
                             st.rerun()
                 
