@@ -12,9 +12,9 @@ import time
 # 初始化后续问题列表和聊天记录
 if "followup_questions" not in st.session_state:
     st.session_state.followup_questions = [
-        "什么是美拉德反应",
-        "煎虾选什么锅",
-        "你能做什么"
+        "挑选内衣的注意事项",
+        "胸部发育有哪些阶段",
+        "胸部发育过程会遇到哪些疾病"
     ]
 
 if "messages" not in st.session_state:

@@ -1,15 +1,16 @@
 import os
 import time
+import streamlit as st
 
 from cozepy import COZE_CN_BASE_URL
 from cozepy import Coze, TokenAuth, Message, ChatStatus, MessageContentType  # noqa
 
-coze_api_token = "pat_3xeECicYAnAijwCVUaeMuZEvN4WLimnAfrmu9HApdw5amSPRsu142pqi49RLUVZV" # os.getenv("COZE_API_TOKEN")
+coze_api_token = st.secrets["COZE_API_KEY1"]  # 使用secrets中的API密钥
 coze_api_base = os.getenv("COZE_API_BASE") or COZE_CN_BASE_URL
 
 coze = Coze(auth=TokenAuth(token=coze_api_token), base_url=coze_api_base)
 
-bot_id = os.getenv("COZE_BOT_ID") or "7471918474705747977"
+bot_id = st.secrets["COZE_BOT_ID1"]
 user_id = "macbook"
 
 def ask_coze(message_question: str) -> tuple[str, list]:
