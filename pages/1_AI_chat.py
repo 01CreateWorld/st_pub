@@ -9,6 +9,21 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 #st.write("Welcome to the AI Chat page")
 import time
 
+# 视频播放区域 - 页面顶部
+video_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "video", "1.mp4")
+if os.path.exists(video_path):
+    st.video(video_path)
+else:
+    st.warning(f"视频文件未找到: {video_path}")
+
+# 提示文字
+st.markdown(
+    '<p style="text-align: center; font-size: 1.1rem; color: #666; margin-top: 1rem; margin-bottom: 1rem;">'
+    '如果你有什么疑问，可以试试问下AI ⬇️'
+    '</p>',
+    unsafe_allow_html=True
+)
+
 # 初始化后续问题列表和聊天记录
 if "followup_questions" not in st.session_state:
     st.session_state.followup_questions = [
