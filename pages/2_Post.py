@@ -3,6 +3,7 @@ import os
 import datetime
 import uuid
 import time
+import requests
 
 # 设置页面配置
 st.set_page_config(
@@ -104,8 +105,9 @@ st.markdown('<h1 class="main-header">💭 成长心语</h1>', unsafe_allow_html=
 st.markdown('<p class="subheader">在这里分享你的成长故事、困惑和感悟...</p>', unsafe_allow_html=True)
 
 # 创建posts目录（如果不存在）
-if not os.path.exists("posts"):
-    os.makedirs("posts")
+# 说明：旧的本地帖子数据仅作为历史分析保留，程序运行时不再读写这些文件
+# if not os.path.exists("posts"):
+#     os.makedirs("posts")
 
 # 检查用户是否登录
 if 'username' not in st.session_state:
@@ -129,25 +131,55 @@ else:
             cancel_button = cols[1].form_submit_button("取消")
             
             if submit_button and post_content:
-                # 生成唯一的帖子ID
+                # ===== 原本本地文件保存逻辑（已改为远程 API，保留为注释） =====
+                # post_id = str(uuid.uuid4())
+                # current_time = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                # post_dir = f"posts/{post_id}"
+                # if not os.path.exists(post_dir):
+                #     os.makedirs(post_dir)
+                # with open(f"{post_dir}/content.txt", "w", encoding="utf-8") as f:
+                #     f.write(f"作者: {st.session_state.username}\n")
+                #     f.write(f"时间: {current_time}\n")
+                #     f.write(f"内容:\n{post_content}")
+                # =====================================================
+
+                # 使用远程 Web API 保存帖子
                 post_id = str(uuid.uuid4())
-                # 获取当前时间
                 current_time = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                
-                # 创建帖子文件夹（为将来添加图片做准备）
-                post_dir = f"posts/{post_id}"
-                if not os.path.exists(post_dir):
-                    os.makedirs(post_dir)
-                
-                # 保存帖子内容
-                with open(f"{post_dir}/content.txt", "w", encoding="utf-8") as f:
-                    f.write(f"作者: {st.session_state.username}\n")
-                    f.write(f"时间: {current_time}\n")
-                    f.write(f"内容:\n{post_content}")
-                
-                st.success("🎉 发布成功！你的心语已经分享给大家了~")
-                st.session_state.show_post_form = False
-                st.rerun()
+
+                try:
+                    base_host = st.secrets.get("DataBaseHOST", "").strip()
+                except Exception:
+                    base_host = ""
+
+                if not base_host:
+                    st.error("服务器配置错误：未找到 DataBaseHOST")
+                else:
+                    base_host = base_host.rstrip("/")
+                    url = f"{base_host}/api/post_items"
+
+                    payload = {
+                        "item_id": post_id,
+                        "item_type": "post",
+                        "parent_post_id": None,
+                        "author_username": st.session_state.username,
+                        "content": post_content,
+                        "created_at": current_time,
+                    }
+
+                    try:
+                        resp = requests.post(url, json=payload, timeout=10)
+                        resp_data = resp.json()
+                    except Exception as e:
+                        st.error(f"发布失败：远程服务异常（{e}）")
+                    else:
+                        if isinstance(resp_data, dict) and resp_data.get("success"):
+                            st.success("🎉 发布成功！你的心语已经分享给大家了~")
+                            st.session_state.show_post_form = False
+                            st.rerun()
+                        else:
+                            msg = resp_data.get("message", "未知错误") if isinstance(resp_data, dict) else "服务返回格式错误"
+                            st.error(f"发布失败：{msg}")
             
             if cancel_button:
                 st.session_state.show_post_form = False
@@ -157,33 +189,50 @@ else:
 st.markdown('<h2 class="section-header">💕 成长心语墙</h2>', unsafe_allow_html=True)
 st.markdown("大家的心路历程和感悟...")
 
-# 获取所有帖子
+# 获取所有帖子（仅从远程 Web API 读取）
 posts = []
-if os.path.exists("posts"):
-    for post_id in os.listdir("posts"):
-        post_path = os.path.join("posts", post_id, "content.txt")
-        if os.path.exists(post_path):
-            try:
-                with open(post_path, "r", encoding="utf-8") as f:
-                    content = f.read()
-                
-                # 解析帖子内容
-                lines = content.split("\n")
-                author = lines[0].replace("作者: ", "")
-                post_time = lines[1].replace("时间: ", "")
-                post_content = "\n".join(lines[3:])
-                
-                posts.append({
-                    "id": post_id,
-                    "author": author,
-                    "time": post_time,
-                    "content": post_content
-                })
-            except Exception as e:
-                st.error(f"读取帖子出错: {e}")
 
-# 按时间倒序排列帖子
-posts.sort(key=lambda x: x["time"], reverse=True)
+try:
+    base_host = st.secrets.get("DataBaseHOST", "").strip()
+except Exception:
+    base_host = ""
+
+if not base_host:
+    # 没有远程配置时，不再使用本地旧数据
+    st.error("服务器配置错误：未找到 DataBaseHOST，无法加载帖子")
+else:
+    base_host = base_host.rstrip("/")
+    url = f"{base_host}/api/post_items"
+    try:
+        resp = requests.get(url, timeout=10)
+        data = resp.json()
+    except Exception as e:
+        st.error(f"获取帖子失败：远程服务异常（{e}）")
+    else:
+        if not isinstance(data, dict) or not data.get("success"):
+            msg = data.get("message", "未知错误") if isinstance(data, dict) else "服务返回格式错误"
+            st.error(f"获取帖子失败：{msg}")
+        else:
+            items = data.get("data") or []
+            for item in items:
+                replies = []
+                for r in item.get("replies") or []:
+                    replies.append({
+                        "id": r.get("item_id"),
+                        "author": r.get("author_username"),
+                        "time": r.get("created_at"),
+                        "content": r.get("content", "")
+                    })
+
+                posts.append({
+                    "id": item.get("item_id"),
+                    "author": item.get("author_username"),
+                    "time": item.get("created_at"),
+                    "content": item.get("content", ""),
+                    "replies": replies
+                })
+
+            posts.sort(key=lambda x: x["time"] or "", reverse=True)
 
 # 显示帖子
 if not posts:
@@ -199,29 +248,8 @@ else:
             if reply_state_key not in st.session_state:
                 st.session_state[reply_state_key] = False
             
-            # 读取回复数据
-            replies_dir = os.path.join("posts", post["id"], "replies")
-            if not os.path.exists(replies_dir):
-                os.makedirs(replies_dir)
-            
-            # 读取回复
-            replies = []
-            for reply_file in sorted(os.listdir(replies_dir)):
-                if reply_file.endswith('.txt'):
-                    with open(os.path.join(replies_dir, reply_file), 'r', encoding='utf-8') as f:
-                        reply_content = f.read()
-                        reply_lines = reply_content.split('\n')
-                        reply_author = reply_lines[0].replace("作者: ", "")
-                        reply_time = reply_lines[1].replace("时间: ", "")
-                        reply_text = '\n'.join(reply_lines[3:])
-                        replies.append({
-                            'author': reply_author,
-                            'time': reply_time,
-                            'content': reply_text
-                        })
-            
-            # 按时间倒序排列回复
-            replies.sort(key=lambda x: x['time'], reverse=True)
+            # 从远程数据中获取回复
+            replies = post.get("replies", [])
             
             # 1. 回复输入框容器 - 包含回复数量、按钮和表单
             reply_input_container = st.container()
@@ -264,20 +292,53 @@ else:
                         cancel_reply = col2.form_submit_button("取消")
                         
                         if submit_reply and reply_content:
-                            # 生成回复文件名（使用时间戳确保唯一性）
-                            reply_filename = f"{int(time.time())}.txt"
-                            reply_path = os.path.join(replies_dir, reply_filename)
-                            
-                            # 保存回复内容
+                            # ===== 原本本地文件保存回复逻辑（已改为远程 API，保留为注释） =====
+                            # reply_filename = f"{int(time.time())}.txt"
+                            # reply_path = os.path.join(replies_dir, reply_filename)
+                            # current_time = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                            # with open(reply_path, "w", encoding="utf-8") as f:
+                            #     f.write(f"作者: {st.session_state.username}\n")
+                            #     f.write(f"时间: {current_time}\n")
+                            #     f.write(f"内容:\n{reply_content}")
+                            # ==========================================================
+
+                            # 使用远程 Web API 保存回复
+                            reply_id = str(uuid.uuid4())
                             current_time = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                            with open(reply_path, "w", encoding="utf-8") as f:
-                                f.write(f"作者: {st.session_state.username}\n")
-                                f.write(f"时间: {current_time}\n")
-                                f.write(f"内容:\n{reply_content}")
-                            
-                            st.session_state[reply_state_key] = False
-                            st.success("回复成功！")
-                            st.rerun()
+
+                            try:
+                                base_host = st.secrets.get("DataBaseHOST", "").strip()
+                            except Exception:
+                                base_host = ""
+
+                            if not base_host:
+                                st.error("服务器配置错误：未找到 DataBaseHOST")
+                            else:
+                                base_host = base_host.rstrip("/")
+                                url = f"{base_host}/api/post_items"
+
+                                payload = {
+                                    "item_id": reply_id,
+                                    "item_type": "reply",
+                                    "parent_post_id": post["id"],
+                                    "author_username": st.session_state.username,
+                                    "content": reply_content,
+                                    "created_at": current_time,
+                                }
+
+                                try:
+                                    resp = requests.post(url, json=payload, timeout=10)
+                                    resp_data = resp.json()
+                                except Exception as e:
+                                    st.error(f"回复失败：远程服务异常（{e}）")
+                                else:
+                                    if isinstance(resp_data, dict) and resp_data.get("success"):
+                                        st.session_state[reply_state_key] = False
+                                        st.success("回复成功！")
+                                        st.rerun()
+                                    else:
+                                        msg = resp_data.get("message", "未知错误") if isinstance(resp_data, dict) else "服务返回格式错误"
+                                        st.error(f"回复失败：{msg}")
                         
                         if cancel_reply:
                             st.session_state[reply_state_key] = False

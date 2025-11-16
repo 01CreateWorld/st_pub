@@ -22,10 +22,14 @@ def show_user_profile():
     st.sidebar.markdown("---")
     col1, col2 = st.sidebar.columns([1, 2])
     
-    # 显示用户头像
-    avatar_path = Path(st.session_state.user['avatar_path'])
-    if avatar_path.exists():
-        col1.image(str(avatar_path), width=60)
+    # 显示用户头像（支持本地文件路径和远程 URL）
+    avatar_value = st.session_state.user.get('avatar_path') if 'user' in st.session_state else None
+    if avatar_value:
+        avatar_path = Path(avatar_value)
+        if avatar_path.exists():
+            col1.image(str(avatar_path), width=60)
+        else:
+            col1.image(avatar_value, width=60)
     
     # 显示欢迎语
     col2.markdown(f"欢迎, **{st.session_state.username}**")
@@ -167,10 +171,10 @@ def login_register_page():
                 elif not is_valid_email(email):
                     st.error("请输入有效的邮箱地址")
                 else:
-                    success, result = user_manager.create_user(username, password, email, gender)
+                    success, result = user_manager.create_user(
+                        username, password, email, gender, avatar_file=avatar_file
+                    )
                     if success:
-                        if avatar_file:
-                            user_manager.update_avatar(result, avatar_file)
                         st.success("注册成功！请登录")
                         st.session_state.show_login = True
                     else:

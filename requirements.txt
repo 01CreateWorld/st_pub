@@ -1,3 +1,4 @@
 cozepy
 bcrypt
 extra_streamlit_components
+requests
